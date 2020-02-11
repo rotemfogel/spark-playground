@@ -42,14 +42,15 @@ trait BaseSparkApp extends Logging {
     list
   }
 
-  protected def getSparkSession(appName: String = getClass.getSimpleName, cores: Int = maxCores, memory: Int = maxMemory / maxCores): SparkSession = {
+  protected def getSparkSession(appName: String = getClass.getSimpleName, cores: Int = maxCores, memory: Int = maxMemory / maxCores, params: Map[String, Any] = Map()): SparkSession = {
     require(memory < maxMemory, s"cannot allocate $memory > $maxMemory")
-    SparkSession
+    val builder = SparkSession
       .builder()
       .appName(getClass.getSimpleName)
       .master("local[*]")
       .config("spark.executor.cores", cores)
       .config("spark.executor.memory", s"${memory}g")
-      .getOrCreate()
+    params.foreach({ case (k, v) =>  builder.config(k, v.toString)})
+    builder.getOrCreate()
   }
 }

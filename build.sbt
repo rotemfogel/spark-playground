@@ -16,7 +16,6 @@ libraryDependencies ++= {
     "org.apache.spark"          %% "spark-streaming"             % sparkVersion,
     "org.apache.spark"          %% "spark-mllib"                 % sparkVersion,
     "org.apache.spark"          %% "spark-streaming-kinesis-asl" % sparkVersion,
-    "org.json4s"                %% "json4s-native"               % "3.6.7",
     "io.delta"                  %% "delta-core"                  % "0.4.0",
     "nl.basjes.parse.useragent"  % "yauaa"                       % "5.12",
     "com.databricks"            %% "spark-csv"                   % "1.5.0",

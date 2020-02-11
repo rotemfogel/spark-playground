@@ -1,11 +1,9 @@
 import java.net.URLDecoder
 
-import nl.basjes.parse.useragent.{UserAgent, UserAgentAnalyzer}
+import nl.basjes.parse.useragent.UserAgentAnalyzer
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions.udf
-import org.json4s.native.JsonMethods.{compact, render}
-import org.json4s.{DefaultFormats, Extraction}
 
 /**
  * project: spark-playground
@@ -28,12 +26,12 @@ object UdfStore {
   })
 
   private final lazy val userAgentAnalyzer: UserAgentAnalyzer = UserAgentAnalyzer.newBuilder().build()
-
+/*
   private def printUserAgent(ua: UserAgent): Unit = {
     import scala.collection.JavaConverters._
     println(compact(render(Extraction.decompose(ua.getAvailableFieldNames.asScala.map(f => (f -> ua.getValue(f))).toMap))))
   }
-
+*/
   def udfUserAgent: UserDefinedFunction = udf((userAgentString: String) => {
     val ua = userAgentAnalyzer.parse(userAgentString)
     // printUserAgent(ua)
@@ -92,7 +90,7 @@ object UdfStore {
     if (lag == 0) 100.0
     else (count - lag).toDouble / lag.toDouble
   })
-
+/*
   implicit val formats: DefaultFormats.type = DefaultFormats
 
   import org.json4s.native.JsonMethods._
@@ -104,4 +102,5 @@ object UdfStore {
     println(map2.keySet.mkString(","))
     compact(render(Extraction.decompose(map2)))
   })
+*/
 }
