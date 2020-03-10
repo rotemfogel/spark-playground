@@ -40,48 +40,57 @@ object UdfStore {
     logger.debug(ua.getAvailableFieldNames.asScala.map(f => f -> ua.getValue(f)).sorted.mkString("\n"))
   }
 
-  private def saParseUserAgent(userAgentString: String): Array[String] = {
-    if (userAgentString.contains("SeekingAlpha")) {
-      val parts = userAgentString.split(";")
-      val os = parts.last.split(" ")
-      os(2).split("/")
-    }
-    else {
-      val parts = userAgentString.split(";")
-      val os = parts(2).trim.split(" ")
-      if (os.length == 3) Array(os(0), os(2))
-      else Array(os(0), os(1))
+  private def saParseUserAgent(userAgentString: String): Map[String, String] = {
+    try {
+      val arr = if (userAgentString.contains("SeekingAlpha")) {
+        val parts = userAgentString.split(";")
+        val os = parts.last.split(" ")
+        os(2).split("/")
+      }
+      else {
+        val parts = userAgentString.split(";")
+        val os = parts(2).trim.split(" ")
+        if (os.length == 3) Array(os(0), os(2))
+        else Array(os(0), os(1))
+      }
+      Map(colNameUserAgentOsName -> arr.head, colNameUserAgentAgentVersion -> arr.last)
+    } catch {
+      case _: ArrayIndexOutOfBoundsException => Map()
     }
   }
 
-  def parseUserAgent(userAgentString: String): String = {
-    val ua = userAgentAnalyzer.parse(userAgentString)
-    printUserAgent(ua)
-    val ret = if (!ua.getValue("OperatingSystemName").equals("Unknown"))
-      Array(ua.getValue("OperatingSystemName"),
-        ua.getValue("OperatingSystemVersion"))
+  import scala.collection.JavaConverters._
+
+  def userAgentParser(str: String): Map[String, String] = {
+    if (StringUtils.isEmpty(str)) Map.empty[String, String]
     else {
-      saParseUserAgent(userAgentString)
-    }
-    val agent = {
-      val a = ua.getValue("AgentName")
-      if (a.startsWith("Com.seeking")) {
-        a.toLowerCase
-      } else {
-        a
+      val agent: UserAgent = userAgentAnalyzer.parse(str)
+      val map: Map[String, String] = {
+        val m: Map[String, String] =
+          agent.getAvailableFieldNames.asScala
+            // .filter(x => !(agent.getValue(x).trim  == "??" || agent.getValue(x).toLowerCase.trim  == "unknown"|| agent.getValue(x).toLowerCase.trim  == "unknown ??"))
+            .map(x => {
+              val value: String = {
+                val v: String = agent.getValue(x)
+                if (x.equals(colNameUserAgentOsVersion) || x.equals(colNameUserAgentAgentVersion))
+                  v.split(" ").last
+                else v
+              }
+              (x, value)
+            })
+            .toMap[String, String]
+        val os = m(colNameUserAgentOsName)
+        if (os.toLowerCase.startsWith("unknown") || os.contains("??")) {
+          m ++ saParseUserAgent(str)
+        }
+        else m
       }
+      map.filter({ case (k, v) => !v.equals("??") || !v.toLowerCase.startsWith("unknown") })
     }
-    (ret ++
-      Array(agent,
-        ua.getValue("AgentVersion"),
-        ua.getValue("DeviceClass"),
-        ua.getValue("DeviceVersion"),
-        ua.getValue("DeviceBrand"))
-      ).mkString(",")
   }
 
   def udfUserAgent: UserDefinedFunction = udf((userAgentString: String) => {
-    parseUserAgent(userAgentString)
+    userAgentParser(userAgentString)
   })
 
   def hasSourceParam: UserDefinedFunction = udf((urlParams: String) => {

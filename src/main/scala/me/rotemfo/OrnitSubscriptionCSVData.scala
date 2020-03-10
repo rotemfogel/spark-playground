@@ -16,7 +16,7 @@ import org.apache.spark.sql.types._
  * author:  rotem
  */
 //noinspection ScalaCustomHdfsFormat,ScalaCustomHdfsFormat
-object SparkCSVData extends BaseSparkApp {
+object OrnitSubscriptionCSVData extends BaseSparkApp {
 
   private final val FILE_NAME = "user_registration_tracking.csv"
 
@@ -36,8 +36,7 @@ object SparkCSVData extends BaseSparkApp {
   )
 
   def main(args: Array[String]): Unit = {
-    val _path = SparkCSVData.getClass.getResource("/").getPath
-    val path = (_path.split(File.separator).dropRight(3) ++ Array("src", "main", "resources")).mkString(File.separator)
+    val path = "/tmp"
 
     val spark = getSparkSession(cores = 16, memory = 12)
 

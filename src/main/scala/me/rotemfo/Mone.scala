@@ -9,17 +9,16 @@ object Mone extends BaseSparkApp {
   def main(args: Array[String]): Unit = {
     val spark = getSparkSession()
     try {
-
-      //      val moneDF = spark.read.json("/data/mone/*/*.gz")
-      //        .filter(col("page_type")
-      //          .eqNullSafe(lit("responsive")))
-      //        .select(UdfStore.qtrim(col("user_agent")))
-      //        .distinct()
-      //        .union(userAgentsDF)
-      //      FileUtils.deleteQuietly(new java.io.File(moneOutputDir))
-      //      moneDF.coalesce(1).write.format(DATABRICKS_CSV).save(moneOutputDir)
-
       val moneOutputDir = s"$OUTPUT_DIR/mone_user_agents"
+
+      val moneDF = spark.read.json("/data/mone/*/*.gz")
+        .filter(col("page_type")
+          .eqNullSafe(lit("responsive")))
+        .select(UdfStore.qtrim(col("user_agent")))
+        .distinct()
+      FileUtils.deleteQuietly(new java.io.File(moneOutputDir))
+      moneDF.coalesce(1).write.format(DATABRICKS_CSV).save(moneOutputDir)
+
       val uaDF = spark.read.format(DATABRICKS_CSV)
         .option("header", value = false)
         .load(s"$moneOutputDir/*.csv")
