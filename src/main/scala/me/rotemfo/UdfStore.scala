@@ -40,35 +40,54 @@ object UdfStore {
     logger.debug(ua.getAvailableFieldNames.asScala.map(f => f -> ua.getValue(f)).sorted.mkString("\n"))
   }
 
+  private lazy val regex = "^sa-.*-wrapper$".r
+
   private def saParseUserAgent(userAgentString: String): Map[String, String] = {
     try {
-      val arr = if (userAgentString.contains("SeekingAlpha")) {
+      if (userAgentString.contains("SeekingAlpha")) {
         val parts = userAgentString.split(";")
-        val os = parts.last.split(" ")
-        os(2).split("/")
+        // old iOS App
+        val last = parts.last.split(" ")
+        val os = last(2).split("/")
+        val osName = {
+          val v = os(0).toLowerCase
+          if (v.equals("ios")) "iOS"
+          else if (v.equals("android")) "Android"
+          else os(0)
+        }
+        val m = Map(colNameUserAgentOsName -> osName, colNameUserAgentOsVersion -> os(1))
+        // old iOS App
+        if (last.length == 7) {
+          val agentVersion = last(5).split("/").last
+          val agentName = last(6).split("/").last
+          m ++ Map(colNameUserAgentAgentName -> agentName, colNameUserAgentAgentVersion -> agentVersion)
+        }
+        else m
       }
-      else {
+      else if (regex.findFirstIn(userAgentString).isDefined || userAgentString.startsWith("com.seekingalpha.webwrapper")) {
         val parts = userAgentString.split(";")
         val os = parts(2).trim.split(" ")
         if (os.length == 3) Array(os(0), os(2))
         else Array(os(0), os(1))
+        Map(colNameUserAgentOsName -> os(0), colNameUserAgentAgentVersion -> os(1))
       }
-      Map(colNameUserAgentOsName -> arr.head, colNameUserAgentAgentVersion -> arr.last)
+      else Map()
     } catch {
-      case _: ArrayIndexOutOfBoundsException => Map()
+      case e: ArrayIndexOutOfBoundsException =>
+        logger.error(s"error parsing user_agent: $userAgentString", e)
+        Map()
     }
   }
 
   import scala.collection.JavaConverters._
 
-  def userAgentParser(str: String): Map[String, String] = {
-    if (StringUtils.isEmpty(str)) Map.empty[String, String]
+  def userAgentParser(str: String): Option[String] = {
+    if (StringUtils.isEmpty(str)) None
     else {
       val agent: UserAgent = userAgentAnalyzer.parse(str)
       val map: Map[String, String] = {
         val m: Map[String, String] =
           agent.getAvailableFieldNames.asScala
-            // .filter(x => !(agent.getValue(x).trim  == "??" || agent.getValue(x).toLowerCase.trim  == "unknown"|| agent.getValue(x).toLowerCase.trim  == "unknown ??"))
             .map(x => {
               val value: String = {
                 val v: String = agent.getValue(x)
@@ -81,11 +100,13 @@ object UdfStore {
             .toMap[String, String]
         val os = m(colNameUserAgentOsName)
         if (os.toLowerCase.startsWith("unknown") || os.contains("??")) {
-          m ++ saParseUserAgent(str)
+          val sa: Map[String, String] = saParseUserAgent(str)
+          m ++ sa
         }
         else m
       }
-      map.filter({ case (k, v) => !v.equals("??") || !v.toLowerCase.startsWith("unknown") })
+      val m = map.filter({ case (_, v) => !v.equals("??") || !v.toLowerCase.startsWith("unknown") })
+      Some(scala.util.parsing.json.JSONObject(m).toString())
     }
   }
 

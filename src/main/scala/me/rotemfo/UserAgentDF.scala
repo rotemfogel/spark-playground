@@ -645,11 +645,16 @@ object UserAgentDF extends App {
     "Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Mobile Safari/537.36")
 
 
-  final case class UserAgent(os: String, osVersion: String, deviceType: String)
-
-  val grouped = data.map(ua => {
-    val parsed = UdfStore.userAgentParser(ua)
-    UserAgent(parsed(colNameUserAgentOsName), parsed(colNameUserAgentOsVersion), parsed(colNameEventsDeviceClass))
-  }).groupBy(_.deviceType).mapValues(_.map(f => f.os).groupBy(identity).mapValues(_.size))
-  println(grouped)
+  //  final case class UserAgent(os: String, osVersion: String, deviceType: String)
+  //
+  //  def jsonStrToMap(jsonStr: String): Map[String, Any] = {
+  //    implicit val formats = org.json4s.DefaultFormats
+  //    import org.json4s.
+  //    parse(jsonStr).extract[Map[String, Any]]
+  //  }
+  //  val grouped = data.map(ua => {
+  //    val parsed = jsonToMap(UdfStore.userAgentParser(ua))
+  //    UserAgent(parsed(colNameUserAgentOsName), parsed(colNameUserAgentOsVersion), parsed(colNameUserAgentDeviceClass))
+  //  }).groupBy(_.deviceType).mapValues(_.map(f => f.os).groupBy(identity).mapValues(_.size))
+  //  println(grouped)
 }

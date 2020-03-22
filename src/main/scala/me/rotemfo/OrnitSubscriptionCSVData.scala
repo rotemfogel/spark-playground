@@ -3,10 +3,11 @@ package me.rotemfo
 import java.io.{File, FileFilter, FileReader, FileWriter}
 
 import com.opencsv.{CSVReader, CSVWriter}
-import me.rotemfo.UdfStore.udfUserAgent
 import org.apache.commons.io.FileUtils
-import org.apache.spark.sql.functions.{col, split}
+import org.apache.spark.sql.Encoders
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
+import org.apache.spark.storage.StorageLevel
 
 /**
  * project: spark-demo
@@ -40,17 +41,33 @@ object OrnitSubscriptionCSVData extends BaseSparkApp {
 
     val spark = getSparkSession(cores = 16, memory = 12)
 
-    val data = spark.read
+    val df = spark.read
       .schema(schema)
       .format(DATABRICKS_CSV)
       .option("header", value = true)
       .option("inferSchema", value = false)
       .option("delimiter", ",")
       .csv(path + File.separator + FILE_NAME)
+      .withColumn(colNameUserAgentJson, UdfStore.udfUserAgent(col(colNameUserAgent)))
 
-    val userAgentDf = data
-      .withColumn("user_agent_json", udfUserAgent(col("user_agent")))
-      .withColumn("_tmp", split(col("user_agent_json"), ","))
+    val dsUserAgent = df.select(col(colNameUserAgentJson)).as[String](Encoders.STRING)
+    val dfUserAgent = spark.read.json(dsUserAgent)
+
+    val userAgentDf =
+      df.withColumn(colNameUserAgentStruct, from_json(col(colNameUserAgentJson), dfUserAgent.schema))
+        .withColumn(colNameAgentClass, col(s"$colNameUserAgentStruct.$colNameUserAgentAgentClass"))
+        .withColumn(colNameDeviceClass, col(s"$colNameUserAgentStruct.$colNameUserAgentDeviceClass"))
+        .withColumn(colNameOsName, col(s"$colNameUserAgentStruct.$colNameUserAgentOsName"))
+        .withColumn(colNameOsVersion, col(s"$colNameUserAgentStruct.$colNameUserAgentOsVersion"))
+        .withColumn(colNameAgentName, col(s"$colNameUserAgentStruct.$colNameUserAgentAgentName"))
+        .withColumn(colNameAgentVersion, col(s"$colNameUserAgentStruct.$colNameUserAgentAgentVersion"))
+        .withColumn(colNameDeviceBrand, col(s"$colNameUserAgentStruct.$colNameUserAgentDeviceBrand"))
+        .withColumn(colNameDeviceName, col(s"$colNameUserAgentStruct.$colNameUserAgentDeviceName"))
+        .drop(colNameUserAgentJson)
+        .drop(colNameUserAgentStruct)
+        .persist(StorageLevel.MEMORY_AND_DISK_SER)
+
+    val output = userAgentDf
       .select(
         col("user_id"),
         col("email"),
@@ -60,13 +77,16 @@ object OrnitSubscriptionCSVData extends BaseSparkApp {
         col("is_confirmed"),
         col("is_gplus"),
         col("page_type"),
-        col("_tmp").getItem(0).as("os_name"),
-        col("_tmp").getItem(1).as("browser_name"),
-        col("_tmp").getItem(2).as("device_class"),
-        col("_tmp").getItem(3).as("agent_class"),
+        col(colNameDeviceClass),
+        col(colNameOsName),
+        col(colNameOsVersion),
+        col(colNameAgentName),
+        col(colNameAgentVersion),
+        col(colNameDeviceBrand),
+        col(colNameDeviceName),
         col("client_id")
       )
-      .filter(col("agent_class").notEqual("Browser Webview"))
+      .filter(col(colNameAgentClass).notEqual("Browser Webview"))
       // .filter(not(col("agent_class").eqNullSafe("Mobile App")))
       .orderBy(col("registration_date"), col("registration_hour"), col("email"))
 
@@ -96,7 +116,7 @@ object OrnitSubscriptionCSVData extends BaseSparkApp {
     //    })
     //    pw.close()
 
-    userAgentDf
+    output
       .coalesce(1)
       .write
       .format(DATABRICKS_CSV)
