@@ -40,11 +40,37 @@ object UdfStore {
     logger.debug(ua.getAvailableFieldNames.asScala.map(f => f -> ua.getValue(f)).sorted.mkString("\n"))
   }
 
+  lazy val seekingAlpha = "SeekingAlpha"
+  lazy val comSeekingAlpha = s"com.${seekingAlpha.toLowerCase}"
+
+  lazy val colNameUserAgent = "user_agent"
+  lazy val colNameUserAgentJson = "user_agent_json"
+  lazy val colNameUserAgentStruct = "user_agent_struct"
+  lazy val colNameDeviceBrand = "device_brand"
+  lazy val colNameDeviceClass = "device_class"
+  lazy val colNameOsName = "os_name"
+  lazy val colNameOsVersion = "os_version"
+  lazy val colNameAgentVersion = "agent_version"
+  lazy val colNameDeviceName = "device_name"
+  lazy val colNameAgentName = "agent_name"
+  lazy val colNameAgentClass = "agent_class"
+
+  lazy val colNameUserAgentDeviceBrand = "DeviceBrand"
+  lazy val colNameUserAgentDeviceClass = "DeviceClass"
+  lazy val colNameUserAgentOsName = "OperatingSystemName"
+  lazy val colNameUserAgentOsNameVersion = "OperatingSystemNameVersion"
+  lazy val colNameUserAgentOsVersion = "OperatingSystemVersion"
+  lazy val colNameUserAgentAgentName = "AgentName"
+  lazy val colNameUserAgentAgentVersion = "AgentVersion"
+  lazy val colNameUserAgentDeviceName = "DeviceName"
+  lazy val colNameUserAgentAgentClass = "AgentClass"
+  lazy val colNameUserAgentAgentNameVersion: String = "AgentNameVersion"
+
   private lazy val regex = "^sa-.*-wrapper$".r
 
   private def saParseUserAgent(userAgentString: String): Map[String, String] = {
     try {
-      if (userAgentString.contains("SeekingAlpha")) {
+      if (userAgentString.contains(seekingAlpha)) {
         val parts = userAgentString.split(";")
         // old iOS App
         val last = parts.last.split(" ")
@@ -58,8 +84,9 @@ object UdfStore {
         val m = Map(colNameUserAgentOsName -> osName, colNameUserAgentOsVersion -> os(1))
         // old iOS App
         if (last.length == 7) {
-          val agentVersion = last(5).split("/").last
-          val agentName = last(6).split("/").last
+          val agentVersion: String = last(5).split("/").last
+          val tmpAgentName: String = last(6).split("/").last
+          val agentName = if (tmpAgentName.startsWith(comSeekingAlpha)) tmpAgentName else s"${comSeekingAlpha}.${tmpAgentName}"
           m ++ Map(colNameUserAgentAgentName -> agentName, colNameUserAgentAgentVersion -> agentVersion)
         }
         else m
@@ -101,13 +128,18 @@ object UdfStore {
         val os = m(colNameUserAgentOsName)
         if (os.toLowerCase.startsWith("unknown") || os.contains("??")) {
           val sa: Map[String, String] = saParseUserAgent(str)
-          m ++ sa
+          mergeMaps(m, sa)
         }
         else m
       }
       val m = map.filter({ case (_, v) => !v.equals("??") || !v.toLowerCase.startsWith("unknown") })
       Some(scala.util.parsing.json.JSONObject(m).toString())
     }
+  }
+
+  def mergeMaps[K, V](m1: Map[K, V], m2: Map[K, V]): Map[K, V] = {
+    if (m2.isEmpty) m1
+    else (m1.keySet ++ m2.keySet).map(k => if (m2.contains(k)) (k, m2(k)) else (k, m1(k))).toMap
   }
 
   def udfUserAgent: UserDefinedFunction = udf((userAgentString: String) => {
