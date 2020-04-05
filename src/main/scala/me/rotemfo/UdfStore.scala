@@ -8,6 +8,8 @@ import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions.udf
 import org.slf4j.{Logger, LoggerFactory}
 
+import scala.util.{Failure, Success, Try}
+
 /**
  * project: spark-playground
  * package:
@@ -174,17 +176,12 @@ object UdfStore {
     else (count - lag).toDouble / lag.toDouble
   })
 
-  /*
-    implicit val formats: DefaultFormats.type = DefaultFormats
 
-    import org.json4s.native.JsonMethods._
-
-    def parseJson: UserDefinedFunction = udf((s: String) => {
-      val map: Map[String, Any] = parse(s).values.asInstanceOf[Map[String, Any]]
-      println(map.keySet.mkString(","))
-      val map2 = map.filterKeys(_ != "portfolio_id")
-      println(map2.keySet.mkString(","))
-      compact(render(Extraction.decompose(map2)))
-    })
-  */
+  def udfReplace: UserDefinedFunction = udf((template: String, key: String, value: String) => {
+    if (StringUtils.isEmpty(key) || StringUtils.isEmpty(value)) template
+    else Try(template.replace(key, value)) match {
+      case Success(rep) => rep
+      case Failure(_) => template
+    }
+  })
 }
