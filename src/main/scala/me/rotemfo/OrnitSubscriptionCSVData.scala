@@ -24,6 +24,7 @@ object OrnitSubscriptionCSVData extends BaseSparkApp {
     List(
       StructField("user_id", LongType, nullable = true),
       StructField("email", StringType, nullable = true),
+      StructField("email_domain", StringType, nullable = true),
       StructField("registration_date", DateType, nullable = true),
       StructField("registration_hour", IntegerType, nullable = true),
       StructField("confirmation_date", DateType, nullable = true),
@@ -64,6 +65,7 @@ object OrnitSubscriptionCSVData extends BaseSparkApp {
       .select(
         col("user_id"),
         col("email"),
+        col("email_domain"),
         col("registration_date"),
         col("registration_hour"),
         col("confirmation_date"),
@@ -117,16 +119,16 @@ object OrnitSubscriptionCSVData extends BaseSparkApp {
 
     spark.stop()
 
-    val files = new File(outputDir).listFiles(new FileFilter {
-      override def accept(pathname: File): Boolean = pathname.getName.split("\\.").last.equals("csv")
-    })
-    val reader = new CSVReader(new FileReader(files.head))
-    val lines = reader.readAll()
-    reader.close()
-
-    val writer = new CSVWriter(new FileWriter(files.head))
-    writer.writeAll(lines)
-    writer.close()
+    //    val files = new File(outputDir).listFiles(new FileFilter {
+    //      override def accept(pathname: File): Boolean = pathname.getName.split("\\.").last.equals("csv")
+    //    })
+    //    val reader = new CSVReader(new FileReader(files.head))
+    //    val lines = reader.readAll()
+    //    reader.close()
+    //
+    //    val writer = new CSVWriter(new FileWriter(files.head))
+    //    writer.writeAll(lines)
+    //    writer.close()
   }
 
 }
