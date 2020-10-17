@@ -2,7 +2,7 @@ name := "spark-playground"
 
 version := "0.1"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.12"
 
 resolvers ++= Seq(
   "sonatype-releases" at "https://oss.sonatype.org/content/repositories/releases/",
@@ -10,23 +10,23 @@ resolvers ++= Seq(
   "bintray" at "https://dl.bintray.com/listnplay/maven/"
 )
 libraryDependencies ++= {
-  val sparkVersion = "2.4.5"
+  val sparkVersion = "3.0.1"
   Seq(
-    "org.slf4j"                  % "slf4j-api"                   % "1.7.30",
-    "ch.qos.logback"             % "logback-classic"             % "1.2.3",
-    "org.apache.spark"          %% "spark-sql"                   % sparkVersion,
-    "org.apache.spark"          %% "spark-streaming"             % sparkVersion,
-    "org.apache.spark"          %% "spark-mllib"                 % sparkVersion,
-    "org.apache.spark"          %% "spark-streaming-kinesis-asl" % sparkVersion,
-    "io.delta"                  %% "delta-core"                  % "0.4.0",
-    "nl.basjes.parse.useragent"  % "yauaa"                       % "5.15",
-    "com.databricks"            %% "spark-csv"                   % "1.5.0",
-    "com.twitter"               %% "util-collection"             % "19.1.0",
-    "org.joda"                   % "joda-convert"                % "2.2.1",
-    "com.sanoma.cda"            %% "maxmind-geoip2-scala"        % "1.5.5",
-    "com.opencsv"                % "opencsv"                     % "5.1",
+    "org.slf4j" % "slf4j-api" % "1.7.30",
+    "ch.qos.logback" % "logback-classic" % "1.2.3",
+    "org.apache.spark" %% "spark-sql" % sparkVersion,
+    "org.apache.spark" %% "spark-streaming" % sparkVersion,
+    "org.apache.spark" %% "spark-mllib" % sparkVersion,
+    "org.apache.spark" %% "spark-streaming-kinesis-asl" % sparkVersion,
+    "io.delta" %% "delta-core" % "0.7.0",
+    "nl.basjes.parse.useragent" % "yauaa" % "5.15",
+    // "com.databricks          %% "spark-csv"                   % "1.5.0",
+    "com.twitter" %% "util-collection" % "19.1.0",
+    "org.joda" % "joda-convert" % "2.2.1",
+    "com.sanoma.cda" %% "maxmind-geoip2-scala" % "1.5.5",
+    "com.opencsv" % "opencsv" % "5.1",
     // test resources
-    "org.specs2"                %% "specs2-core" % "4.6.0"       % Test
+    "org.specs2" %% "specs2-core" % "4.6.0" % Test
   )
 }
 
