@@ -4,8 +4,13 @@ import java.net.URLDecoder
 
 import nl.basjes.parse.useragent.{UserAgent, UserAgentAnalyzer}
 import org.apache.commons.lang3.StringUtils
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.expressions.UserDefinedFunction
-import org.apache.spark.sql.functions.udf
+import org.apache.spark.sql.functions.{col, udf}
+import org.apache.spark.sql.types.StructType
+import org.json4s.jackson.JsonMethods.{compact, render}
+import org.json4s.{DefaultFormats, Extraction}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.util.{Failure, Success, Try}
@@ -85,10 +90,18 @@ object UdfStore {
   }
 
   import scala.collection.JavaConverters._
-  def userAgentParser(str: String): Option[String] = {
+
+  /**
+   * parse user agent
+   *
+   * @param str the user agent str
+   * @param ua  the user agent analyzer
+   * @return optional json string representing parse user agent map
+   */
+  def userAgentParser(str: String, ua: Broadcast[UserAgentAnalyzer]): Option[String] = {
     if (StringUtils.isEmpty(str)) None
     else {
-      val agent: UserAgent = userAgentAnalyzer.parse(str)
+      val agent: UserAgent = ua.value.parse(str)
       val map: Map[String, String] = {
         val m: Map[String, String] =
           agent.getAvailableFieldNames.asScala
@@ -110,18 +123,32 @@ object UdfStore {
         else m
       }
       val m = map.filter({ case (_, v) => !v.equals("??") || !v.toLowerCase.startsWith("unknown") })
-      Some(scala.util.parsing.json.JSONObject(m).toString())
+      Some(toJson(m))
     }
   }
+
+  implicit val formats: DefaultFormats.type = DefaultFormats
+
+  /**
+   * util function to extract T type from json string
+   *
+   * @param s the jsong string
+   * @return T
+   */
+  def fromJson[T](s: String)(implicit m: Manifest[T]): T = org.json4s.jackson.parseJson(s).extract[T]
+
+  /**
+   * util function to create a json string from any
+   *
+   * @param a any object
+   * @return json string
+   */
+  def toJson(a: Any): String = compact(render(Extraction.decompose(a)))
 
   def mergeMaps[K, V](m1: Map[K, V], m2: Map[K, V]): Map[K, V] = {
     if (m2.isEmpty) m1
     else (m1.keySet ++ m2.keySet).map(k => if (m2.contains(k)) (k, m2(k)) else (k, m1(k))).toMap
   }
-
-  def udfUserAgent: UserDefinedFunction = udf((userAgentString: String) => {
-    userAgentParser(userAgentString)
-  })
 
   def hasSourceParam: UserDefinedFunction = udf((urlParams: String) => {
     if (StringUtils.isEmpty(urlParams)) false
@@ -131,7 +158,7 @@ object UdfStore {
         .map(t => t.split("="))
         .map(p => (p.head, p.last))
         .toMap
-        .get("source").isDefined
+        .contains("source")
     }
   })
 
@@ -184,4 +211,15 @@ object UdfStore {
       case Failure(_) => template
     }
   })
+
+  implicit class DataFrameExSql(dataFrame: DataFrame) {
+    def cast(schema: StructType): DataFrame = {
+      schema.foldLeft(dataFrame) { case (df, c) =>
+        df.withColumn(s"_${c.name}", col(c.name).cast(c.dataType))
+          .drop(c.name)
+          .withColumnRenamed(s"_${c.name}", c.name)
+      }
+    }
+  }
+
 }
