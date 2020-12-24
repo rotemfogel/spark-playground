@@ -1,6 +1,5 @@
 package me.rotemfo
 
-import me.rotemfo.UdfStore.udfUserAgent
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
@@ -43,6 +42,9 @@ object FraudDetection extends BaseSparkApp {
       import spark.implicits._
       val articlesDf = articles.toSeq.toDF("content_id", "title")
 
+      val ua = getUserAgentAnalyzer(spark)
+      val udfUserAgent = getUdfUserAgent(ua)
+
       val df = spark.read.format(DATABRICKS_CSV)
         .option("delimiter", ",")
         .option("header", value = true)
@@ -67,7 +69,7 @@ object FraudDetection extends BaseSparkApp {
           col("referrer_domain"),
           col("country_geo"))
         .drop("user_agent_json")
-        .join(articlesDf, usingColumns = Seq("content_id"))
+        .join(articlesDf, Seq("content_id"))
         .cache()
 
       //      def groupings(col: String): Unit = {

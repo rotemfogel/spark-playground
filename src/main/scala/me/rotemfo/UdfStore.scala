@@ -1,7 +1,5 @@
 package me.rotemfo
 
-import java.net.URLDecoder
-
 import nl.basjes.parse.useragent.{UserAgent, UserAgentAnalyzer}
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.broadcast.Broadcast
@@ -13,6 +11,7 @@ import org.json4s.jackson.JsonMethods.{compact, render}
 import org.json4s.{DefaultFormats, Extraction}
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.net.URLDecoder
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -47,7 +46,7 @@ object UdfStore {
 
   private def printUserAgent(ua: UserAgent): Unit = {
     import scala.collection.JavaConverters._
-    logger.debug(ua.getAvailableFieldNames.asScala.map(f => f -> ua.getValue(f)).sorted.mkString("\n"))
+    logger.debug(ua.getAvailableFieldNamesSorted.asScala.map(f => f -> ua.getValue(f)).sorted.mkString("\n"))
   }
 
   private lazy val regex = "^sa-.*-wrapper$".r
@@ -104,7 +103,7 @@ object UdfStore {
       val agent: UserAgent = ua.value.parse(str)
       val map: Map[String, String] = {
         val m: Map[String, String] =
-          agent.getAvailableFieldNames.asScala
+          agent.getAvailableFieldNamesSorted.asScala
             .map(x => {
               val value: String = {
                 val v: String = agent.getValue(x)

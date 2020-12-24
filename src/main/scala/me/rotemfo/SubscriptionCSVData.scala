@@ -1,12 +1,11 @@
 package me.rotemfo
 
-import java.io.{File, FileFilter, FileReader, FileWriter}
-
-import com.opencsv.{CSVReader, CSVWriter}
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.storage.StorageLevel
+
+import java.io.File
 
 /**
  * project: spark-demo
@@ -16,7 +15,7 @@ import org.apache.spark.storage.StorageLevel
  * author:  rotem
  */
 //noinspection ScalaCustomHdfsFormat,ScalaCustomHdfsFormat
-object OrnitSubscriptionCSVData extends BaseSparkApp {
+object SubscriptionCSVData extends BaseSparkApp {
 
   private final val FILE_NAME = "user_registration_tracking.csv"
 
@@ -40,6 +39,8 @@ object OrnitSubscriptionCSVData extends BaseSparkApp {
     val path = "/tmp"
 
     val spark = getSparkSession(cores = 16, memory = 12)
+    val ua = getUserAgentAnalyzer(spark)
+    val udfUserAgent = getUdfUserAgent(ua)
 
     val df = spark.read
       .schema(schema)
@@ -48,7 +49,7 @@ object OrnitSubscriptionCSVData extends BaseSparkApp {
       .option("inferSchema", value = false)
       .option("delimiter", ",")
       .csv(path + File.separator + FILE_NAME)
-      .withColumn(colNamePostsUserAgentJson, UdfStore.udfUserAgent(col(colNamePostsUserAgent)))
+      .withColumn(colNamePostsUserAgentJson, udfUserAgent(col(colNamePostsUserAgent)))
       .withColumn(colNamePostsUserAgentStruct, from_json(col(colNamePostsUserAgentJson), userAgentSchema))
       .drop(colNamePostsUserAgentJson)
       .withColumn(colNameEventsDeviceClass, col(s"$colNamePostsUserAgentStruct.$colNameUserAgentDeviceClass"))

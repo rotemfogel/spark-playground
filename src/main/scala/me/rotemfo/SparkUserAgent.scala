@@ -1,12 +1,12 @@
 package me.rotemfo
 
-import java.io.File
-
-import me.rotemfo.UdfStore.{qtrim, udfUserAgent}
+import me.rotemfo.UdfStore.qtrim
 import org.apache.commons.io.FileUtils
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.functions.{col, split}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
+
+import java.io.File
 
 /**
  * project: spark-demo
@@ -37,6 +37,9 @@ object SparkUserAgent extends BaseSparkApp with Logging {
 
     val outputDir = OUTPUT_DIR + "/user_agents"
     FileUtils.deleteQuietly(new File(outputDir))
+
+    val ua = getUserAgentAnalyzer(spark)
+    val udfUserAgent = getUdfUserAgent(ua)
 
     userAgentDf
       .withColumn("user_agent_fixed", qtrim(col("user_agent")))

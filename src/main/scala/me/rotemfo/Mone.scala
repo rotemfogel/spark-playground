@@ -1,6 +1,5 @@
 package me.rotemfo
 
-import me.rotemfo.UdfStore.udfUserAgent
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.functions._
 
@@ -26,6 +25,9 @@ object Mone extends BaseSparkApp {
       val dataOutputDir = s"$OUTPUT_DIR/mone_user_agents_data"
       FileUtils.deleteQuietly(new java.io.File(dataOutputDir))
 
+      val ua = getUserAgentAnalyzer(spark)
+      val udfUserAgent = getUdfUserAgent(ua)
+
       val col1 = uaDF.schema.fields(0).name
       uaDF.withColumnRenamed(col1, "user_agent")
         .filter(col("user_agent").isNotNull.and(
@@ -45,7 +47,7 @@ object Mone extends BaseSparkApp {
         .drop("_tmp")
         .select("user_agent", "os_name", "os_version", "agent_name", "agent_version", "device_class", "device_version", "device_brand")
         .coalesce(1)
-        .write.format(DATABRICKS_CSV).option("header", value = true).save(dataOutputDir)
+        .write.format(DATABRICKS_CSV).option("header", value=true).save(dataOutputDir)
     } catch {
       case e: Throwable => e.printStackTrace()
     } finally {

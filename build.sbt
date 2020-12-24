@@ -2,7 +2,7 @@ name := "spark-playground"
 
 version := "0.1"
 
-scalaVersion := "2.12.12"
+scalaVersion := "2.11.11"
 
 resolvers ++= Seq(
   "sonatype-releases" at "https://oss.sonatype.org/content/repositories/releases/",
@@ -10,7 +10,7 @@ resolvers ++= Seq(
   "bintray" at "https://dl.bintray.com/listnplay/maven/"
 )
 libraryDependencies ++= {
-  val sparkVersion = "3.0.1"
+  val sparkVersion = "2.4.6"
   Seq(
     "org.slf4j"                  % "slf4j-api"                   % "1.7.30",
     "ch.qos.logback"             % "logback-classic"             % "1.2.3",
@@ -20,7 +20,7 @@ libraryDependencies ++= {
     "org.apache.spark"          %% "spark-streaming-kinesis-asl" % sparkVersion,
     "io.delta"                  %% "delta-core"                  % "0.7.0",
     "nl.basjes.parse.useragent"  % "yauaa"                       % "5.19",
-    // "com.databricks          %% "spark-csv"                   % "1.5.0",
+    "com.databricks"            %% "spark-csv"                   % "1.5.0",
     "com.twitter"               %% "util-collection"             % "19.1.0",
     "org.joda"                   % "joda-convert"                % "2.2.1",
     "com.sanoma.cda"            %% "maxmind-geoip2-scala"        % "1.5.5",

@@ -1,11 +1,16 @@
 package me.rotemfo
 
-import java.io.File
-
+import me.rotemfo.UdfStore.userAgentParser
+import nl.basjes.parse.useragent.UserAgentAnalyzer
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.{DirectoryFileFilter, NotFileFilter, TrueFileFilter}
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.expressions.UserDefinedFunction
+import org.apache.spark.sql.functions.udf
+
+import java.io.File
 
 /**
  * project: spark-demo
@@ -55,4 +60,9 @@ trait BaseSparkApp extends Logging {
     params.foreach({ case (k, v) => builder.config(k, v.toString) })
     builder.getOrCreate()
   }
+
+  def getUserAgentAnalyzer(spark: SparkSession): Broadcast[UserAgentAnalyzer] = spark.sparkContext.broadcast(UserAgentAnalyzer.newBuilder().build())
+
+  def getUdfUserAgent(ua: Broadcast[UserAgentAnalyzer]): UserDefinedFunction = udf((x: String) => userAgentParser(x, ua))
+
 }
