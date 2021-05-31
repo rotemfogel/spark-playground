@@ -20,8 +20,7 @@ import java.io.File
  * author:  rotem
  */
 trait BaseSparkApp extends Logging {
-  protected final val HOME_DIR = s"${System.getProperty("user.home")}/"
-  protected final val BASE_DIR = s"${HOME_DIR}dev/data/"
+  protected final val BASE_DIR = "/data/"
   protected final val OUTPUT_DIR = s"${BASE_DIR}results"
   protected final val MONE_POSTS = "mone_posts/"
   protected final val MONE_EVENTS = "mone_events/"
