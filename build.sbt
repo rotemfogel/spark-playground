@@ -31,6 +31,8 @@ libraryDependencies ++= {
     "com.sanoma.cda"                %% "maxmind-geoip2-scala"        % "1.5.5",
     "com.opencsv"                    % "opencsv"                     % "5.1",
     "com.linkedin"                  %% "isolation-forest"            % "2.0.4",
+    "com.seekingalpha"               % "data-contract"               % "1.14.0",
+    "com.github.scopt"              %% "scopt"                       % "4.0.1",
     // test resources
     "org.specs2"                    %% "specs2-core"                 % "4.6.0" % Test
   )
