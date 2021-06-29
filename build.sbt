@@ -33,7 +33,10 @@ libraryDependencies ++= {
     "com.linkedin"                  %% "isolation-forest"            % "2.0.4",
     "com.seekingalpha"               % "data-contract"               % "1.14.0",
     "com.github.scopt"              %% "scopt"                       % "4.0.1",
-    // test resources
+    "com.amazon.deequ"               % "deequ"                       % "1.0.5",
+    "mysql"                          % "mysql-connector-java"        % "8.0.25",
+
+  // test resources
     "org.specs2"                    %% "specs2-core"                 % "4.6.0" % Test
   )
 }
