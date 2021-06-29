@@ -4,7 +4,6 @@ import com.amazon.deequ.analyzers._
 import com.amazon.deequ.analyzers.runners.AnalyzerContext.successMetricsAsDataFrame
 import com.amazon.deequ.analyzers.runners.{AnalysisRunner, AnalyzerContext}
 import org.apache.spark.sql.functions.{col, lit, to_json}
-import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, SaveMode}
 import org.apache.spark.storage.StorageLevel
 
@@ -14,14 +13,14 @@ import java.time.LocalDate
 object Stats extends BaseSparkApp {
   def main(args: Array[String]): Unit = {
     val spark = getSparkSession()
-    val schema = StructType(
-      Seq(
-        StructField("date_", DateType, nullable = false),
-        StructField("user_id", IntegerType, nullable = false),
-        StructField("subscription_product_id_group", StringType, nullable = false),
-        StructField("pvs", LongType, nullable = false)
-      )
-    )
+    //    val schema = StructType(
+    //      Seq(
+    //        StructField("date_", DateType, nullable = false),
+    //        StructField("user_id", IntegerType, nullable = false),
+    //        StructField("subscription_product_id_group", StringType, nullable = false),
+    //        StructField("pvs", LongType, nullable = false)
+    //      )
+    //    )
     val baseDir = "/data/user_pvs"
 
     def save(df: DataFrame, d: Option[Date] = None): Unit = {
@@ -32,6 +31,7 @@ object Stats extends BaseSparkApp {
           .onData(filtered)
           // define analyzers that compute metrics
           .addAnalyzer(Mean("pvs"))
+          .addAnalyzer(StandardDeviation("pvs"))
           .addAnalyzer(Maximum("pvs"))
           .addAnalyzer(Minimum("pvs"))
           .run()
