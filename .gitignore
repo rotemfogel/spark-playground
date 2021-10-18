@@ -29,3 +29,4 @@ project/target
 hs_err_pid*
 
 spark-warehouse/
+/src/main/resources/maxmind/GeoLite2-City.mmdb

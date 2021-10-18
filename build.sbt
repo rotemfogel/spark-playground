@@ -24,17 +24,18 @@ libraryDependencies ++= {
     "org.apache.spark"              %% "spark-mllib"                 % sparkVersion,
     "org.apache.spark"              %% "spark-streaming-kinesis-asl" % sparkVersion,
     "io.delta"                      %% "delta-core"                  % "0.6.1",
-    "nl.basjes.parse.useragent"      % "yauaa"                       % "5.19",
+    "nl.basjes.parse.useragent"      % "yauaa"                       % "5.23",
     "com.databricks"                %% "spark-csv"                   % "1.5.0",
     "com.twitter"                   %% "util-collection"             % "19.1.0",
     "org.joda"                       % "joda-convert"                % "2.2.1",
     "com.sanoma.cda"                %% "maxmind-geoip2-scala"        % "1.5.5",
     "com.opencsv"                    % "opencsv"                     % "5.1",
-    "com.linkedin"                  %% "isolation-forest"            % "2.0.4",
-    "com.seekingalpha"               % "data-contract"               % "1.14.0",
+    // "com.linkedin"                  %% "isolation-forest"            % "2.0.4",
+    // "com.seekingalpha"               % "data-contract"               % "1.14.0",
     "com.github.scopt"              %% "scopt"                       % "4.0.1",
     "com.amazon.deequ"               % "deequ"                       % "1.0.5",
     "mysql"                          % "mysql-connector-java"        % "8.0.25",
+    "com.sanoma.cda"                %% "maxmind-geoip2-scala"        % "1.5.5",
 
   // test resources
     "org.specs2"                    %% "specs2-core"                 % "4.6.0" % Test

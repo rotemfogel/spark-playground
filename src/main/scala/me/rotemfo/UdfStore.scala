@@ -1,17 +1,24 @@
 package me.rotemfo
 
+import com.amazon.deequ.analyzers._
+import com.amazon.deequ.analyzers.runners.AnalyzerContext.successMetricsAsDataFrame
+import com.amazon.deequ.analyzers.runners.{AnalysisRunner, AnalyzerContext}
+import com.sanoma.cda.geoip.{IpLocation, MaxMindIpGeo}
 import nl.basjes.parse.useragent.{UserAgent, UserAgentAnalyzer}
 import org.apache.commons.lang3.StringUtils
+import org.apache.spark.SparkFiles
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.expressions.UserDefinedFunction
-import org.apache.spark.sql.functions.{col, udf}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{DateType, StructType}
+import org.apache.spark.sql.{Column, DataFrame, SaveMode, SparkSession}
 import org.json4s.jackson.JsonMethods.{compact, render}
 import org.json4s.{DefaultFormats, Extraction}
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.io.InputStream
 import java.net.URLDecoder
+import java.sql.Date
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -221,4 +228,81 @@ object UdfStore {
     }
   }
 
+  val s2d: UserDefinedFunction = udf((s: String) => Date.valueOf(s))
+
+  @transient private final val maxMindDbName: String = "GeoLite2-City.mmdb"
+  private final lazy val geoIp: Option[MaxMindIpGeo] = {
+    // for production - should find the MaxMind Database here
+    val maybe = Try(Some(MaxMindIpGeo(SparkFiles.get(maxMindDbName))))
+    if (maybe.isSuccess) maybe.get
+    else {
+      // for tests, should find it in test resource classpath
+      val inputLocation = "/maxmind/" + maxMindDbName
+      val is: InputStream = getClass.getResourceAsStream(inputLocation)
+      val maybeTest = Try(Some(new MaxMindIpGeo(is)))
+      if (maybeTest.isSuccess) maybeTest.get else None
+    }
+  }
+
+  private val emptyString = ""
+
+  private val ipLookup: String => Option[IpLocation] = ip => if (geoIp.isDefined) geoIp.get.getLocation(ip) else None
+
+  def ipToGeo(ip: String): String = {
+    val geoMap: String = if (ip != null)
+      try {
+        val result: Option[IpLocation] = ipLookup(ip)
+        if (result.nonEmpty)
+          toJson(result.get)
+        else
+          emptyString
+      } catch {
+        case _: Throwable => emptyString
+      }
+    else
+      emptyString
+    geoMap
+  }
+
+  def ipToGeoJson: UserDefinedFunction = udf(ipToGeo _)
+
+  def getJsonObjectNullSafe(c: Column, path: String): Column = {
+    when(c.isNotNull, get_json_object(c, path))
+      .otherwise(lit(null))
+  }
+
+  def statsToDB(df: DataFrame, column: String, d: Option[Date])(implicit spark: SparkSession): Unit =
+    statsToDB(df, "default", column, d)
+
+  def statsToDB(df: DataFrame, `type`: String, column: String, d: Option[Date] = None)(implicit spark: SparkSession): Unit = {
+    val analysisResult: AnalyzerContext = {
+      AnalysisRunner
+        // data to run the analysis on
+        .onData(if (d.isDefined) df.where(col("date_") === lit(d.get)) else df)
+        // define analyzers that compute metrics
+        .addAnalyzer(ApproxQuantile(column, 0.5))
+        .addAnalyzer(Mean(column))
+        .addAnalyzer(StandardDeviation(column))
+        .addAnalyzer(Maximum(column))
+        .addAnalyzer(Minimum(column))
+        .addAnalyzer(Histogram(column))
+        .run()
+    }
+
+    // retrieve successfully computed metrics as a Spark data frame
+    val metrics = successMetricsAsDataFrame(spark, analysisResult)
+    metrics
+      .withColumn("date_", lit(if (d.isDefined) d.get else lit(null).cast(DateType)))
+      .withColumn("type_", lit(`type`))
+      .select("date_", "type_", "name", "value")
+      .repartition(1)
+      .write
+      .format("jdbc")
+      .option("url", "jdbc:mysql://127.0.0.1:3306/seekingalpha")
+      .option("dbtable", "seekingalpha.metrics")
+      .option("user", "seeking")
+      .option("password", "alpha")
+      .mode(SaveMode.Append) // <--- Append to the existing table
+      .save()
+  }
 }
